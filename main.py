@@ -10,19 +10,22 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='./data')
+    parser.add_argument('--ranking', type=str, default='tfidf')
     args = parser.parse_args()
 
     dataset = Dataset(data_dir=args.data_dir)
-    engine = Engine(dataset=dataset)
+    engine = Engine(dataset=dataset, ranking_algo=args.ranking)
 
     while True:
         query = input('> ')
         # results = engine.search(query)[:5]
-        results = engine.search_bert(query)[:10]
+        results = engine.search(query)
 
         print('Only showing top 5 results:')
         for result in results:
             print('=============')
             print(f'{result.document.title} :: {result.score:.4f}')
-            print(result.document.raw_main_desc)
+            print('https://en.wikipedia.org/wiki/' + result.document.name)
+            print(result.document.main_image)
+            # print(result.document.raw_main_desc)
             print()

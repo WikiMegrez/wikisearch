@@ -11,11 +11,37 @@ SearchResult = namedtuple('SearchResult', ['score', 'document'])
 
 
 class Engine(object):
-    def __init__(self, dataset: Dataset):
+    def __init__(self, dataset: Dataset, ranking_algo: str = 'tfidf'):
         self._dataset = dataset
         self._bert = BertRanking()
+        self.ranking_algo = ranking_algo
 
     def search(self, text: str) -> List[SearchResult]:
+        if self.ranking_algo == 'both':
+            return self.search_both(text)
+        if self.ranking_algo == 'tfidf':
+            return self.search_tfidf(text)
+        if self.ranking_algo == 'bert':
+            return self.search_bert(text)
+
+    def search_both(self, text: str) -> List[SearchResult]:
+        query = self._vectorize(text)
+        res = self._retrieve(query)
+
+        def compute_rank(doc: Document):
+            score = self._bert.score(text, doc)
+
+            doc_z = self._vectorize(doc)
+            score += (query * doc_z).sum()
+
+            return SearchResult(score=score, document=doc)
+
+        res = [compute_rank(doc) for doc in res]
+        res = sorted(res, key=lambda x: x.score, reverse=True)
+
+        return res
+
+    def search_tfidf(self, text: str) -> List[SearchResult]:
         query = self._vectorize(text)
         res = self._retrieve(query)
         res = self._sim_rank(query, res)

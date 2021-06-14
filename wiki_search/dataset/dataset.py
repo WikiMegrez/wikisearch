@@ -241,13 +241,13 @@ class Dataset(object):
             i = self.d2i[doc.name]
             doc.main_desc = self.tfidf[i]
 
-        print('Building graph edge index ...')
-        path = osp.join(self.processed_dir, 'edge_index.pt')
-        if osp.exists(path):
-            self.edge_index = torch.load(path)
-        else:
-            self.edge_index = self.construct_graph()
-            torch.save(self.edge_index, path)
+        # print('Building graph edge index ...')
+        # path = osp.join(self.processed_dir, 'edge_index.pt')
+        # if osp.exists(path):
+        #     self.edge_index = torch.load(path)
+        # else:
+        #     self.edge_index = self.construct_graph()
+        #     torch.save(self.edge_index, path)
 
     @property
     def raw_dir(self):
