@@ -4,6 +4,7 @@ from typing import List, Tuple
 import torch
 
 from wiki_search.dataset import Dataset, Document
+from wiki_search.core.bert_ranking import BertRanking
 
 
 SearchResult = namedtuple('SearchResult', ['score', 'document'])
@@ -12,12 +13,26 @@ SearchResult = namedtuple('SearchResult', ['score', 'document'])
 class Engine(object):
     def __init__(self, dataset: Dataset):
         self._dataset = dataset
+        self._bert = BertRanking()
 
     def search(self, text: str) -> List[SearchResult]:
         query = self._vectorize(text)
         res = self._retrieve(query)
         res = self._sim_rank(query, res)
         return [SearchResult(score=x[0], document=x[1]) for x in res]
+
+    def search_bert(self, text: str) -> List[SearchResult]:
+        query = self._vectorize(text)
+        res = self._retrieve(query)
+
+        def compute_rank(doc: Document):
+            score = self._bert.score(text, doc)
+            return SearchResult(score=score, document=doc)
+
+        res = [compute_rank(doc) for doc in res]
+        res = sorted(res, key=lambda x: x.score, reverse=True)
+
+        return res
 
     def _vectorize(self, x):
         if isinstance(x, Document):

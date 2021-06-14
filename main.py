@@ -7,7 +7,7 @@ from wiki_search import Dataset, Engine
 if __name__ == '__main__':
     if not ray.is_initialized():
         ray.init()
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='./data')
     args = parser.parse_args()
@@ -17,7 +17,8 @@ if __name__ == '__main__':
 
     while True:
         query = input('> ')
-        results = engine.search(query)[:5]
+        # results = engine.search(query)[:5]
+        results = engine.search_bert(query)[:10]
 
         print('Only showing top 5 results:')
         for result in results:
