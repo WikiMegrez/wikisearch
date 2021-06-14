@@ -14,26 +14,27 @@
 </head>
 
 <body>
-    <div class="container">
+    <div id="app" class="container">
         <h1>WikiMegrez</h1>
         <div class="row">
             <div class="input-field col s10">
-                <input id="search_query" type="text" class="validate">
+                <input id="search_query" type="text">
                 <label for="search_query">Query</label>
             </div>
             <div class="col s2">
-                <a class="btn-floating btn-large waves-effect waves-light blue"><i class="material-icons">search</i></a>
+                <a class="btn-floating btn-large waves-effect waves-light blue" onclick="searchClicked()"><i class="material-icons">search</i></a>
             </div>
         </div>
-        <div class="row">
+        <div v-for="image in images" class="row">
             <div class="col s12">
-                <img class="materialboxed" width="650" src="https://upload.wikimedia.org/wikipedia/en/thumb/1/14/Chisel(ProgrammingLanguage)Logo.svg/220px-Chisel(ProgrammingLanguage)Logo.svg.png">
+                <img class="materialboxed" width="650" v-bind:src="image">
             </div>
         </div>
     </div>
 
     <!--JavaScript at end of body for optimized loading-->
     <script type="text/javascript" src="js/materialize.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <script src="js/app.js"></script>
 </body>
 
