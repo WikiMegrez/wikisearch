@@ -65,6 +65,20 @@ def split_words(data: List[Document]):
     return docs
 
 
+def derive_edges(doc: Document, d2i: Dict[str, int]):
+    src = d2i[doc.name]
+    dests = [d2i[x] for x in doc.out_links if x in d2i]
+    edges = [[src, x] for x in dests]
+    edge_index = torch.tensor(edges).to(torch.long)
+    edge_index = edge_index.t()
+    return edge_index
+
+
+@ray.remote
+def derive_edges_runner(doc: Document, d2i: Dict[str, int]):
+    return derive_edges(doc, d2i)
+
+
 def ray_reduce(func, xs):
     n = len(xs)
     if n == 1:
@@ -133,11 +147,19 @@ class Dataset(object):
         self.word_count = None
         self.idf = None
         self.tfidf: torch.FloatTensor = None
+        self.edge_index = None
 
         self.preprocess()
 
         self.num_docs = self.tfidf.size()[0]
         self.num_words = self.tfidf.size()[1]
+
+    def construct_graph(self):
+        edges = [derive_edges_runner.remote(doc, self.d2i) for doc in self.data]
+        edges = ray.get(edges)
+        edge_index = torch.cat(edges, dim=1)
+
+        return edge_index
 
     def vectorize(self, text: str) -> torch.FloatTensor:
         words = tokenize_text(text)
@@ -147,32 +169,6 @@ class Dataset(object):
                 i = self.w2i[w]
                 res[i] += 1.0
         return res.to(torch.float32)
-
-    def retrieve(self, query_vector: torch.FloatTensor) -> List[Document]:
-        mask = (query_vector > 1e-8).to(torch.bool)
-        word_occ = (self.word_count > 0).to(torch.bool)
-        word_occ = word_occ[:, mask]
-        match = torch.all(word_occ, dim=1)
-        matched = torch.nonzero(match, as_tuple=False).view(-1)
-        matched = matched.tolist()
-
-        docs = [self.data[i] for i in matched]
-
-        return docs
-
-    def sim_rank(self, query: torch.FloatTensor, candidates: List[Document]) -> List[Tuple[float, Document]]:
-        # query: [W]
-        vectors = [self.vectorize_doc(doc) for doc in candidates]
-        mat = torch.stack(vectors, dim=0)  # [K, W]
-        query = torch.unsqueeze(query, dim=1)
-        score = mat @ query  # [K, 1]
-        score = torch.squeeze(score, dim=1)
-        score = score.tolist()
-
-        res = list(zip(score, candidates))
-        res = sorted(res, key=lambda x: x[0], reverse=True)
-
-        return res
 
     def vectorize_doc(self, doc: Document) -> torch.FloatTensor:
         return doc.main_desc
@@ -244,6 +240,14 @@ class Dataset(object):
         for doc in self.data:
             i = self.d2i[doc.name]
             doc.main_desc = self.tfidf[i]
+
+        print('Building graph edge index ...')
+        path = osp.join(self.processed_dir, 'edge_index.pt')
+        if osp.exists(path):
+            self.edge_index = torch.load(path)
+        else:
+            self.edge_index = self.construct_graph()
+            torch.save(self.edge_index, path)
 
     @property
     def raw_dir(self):
