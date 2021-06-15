@@ -29,6 +29,10 @@ def search(q: str):
             return True
         if x.endswith('19px-Symbol_support_vote.svg.png'):
             return True
+        if x.endswith('40px-Text_document_with_red_question_mark.svg.png'):
+            return True
+        if x.endswith('40px-Ambox_important.svg.png'):
+            return True
         return False
 
     res = [x for x in res if not is_bullshit(x)]

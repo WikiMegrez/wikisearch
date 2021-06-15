@@ -19,13 +19,17 @@ if __name__ == '__main__':
     while True:
         query = input('> ')
         # results = engine.search(query)[:5]
-        results = engine.search(query)
+        results = engine.search(query)[:8]
 
-        print('Only showing top 5 results:')
+        print('Only showing top 8 results:')
         for result in results:
             print('=============')
             print(f'{result.document.title} :: {result.score:.4f}')
             print('https://en.wikipedia.org/wiki/' + result.document.name)
-            print(result.document.main_image)
-            # print(result.document.raw_main_desc)
+            # print(result.document.main_image)
+            desc = result.document.raw_main_desc
+            if len(desc) > 1000:
+                desc = desc[:1000]
+                desc += '...'
+            print(desc)
             print()
