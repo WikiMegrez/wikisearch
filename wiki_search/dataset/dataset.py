@@ -7,6 +7,8 @@ import os.path as osp
 import os
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+from torch_geometric.utils import degree
+from torch_scatter import scatter
 import torch
 import ray
 
@@ -77,6 +79,20 @@ def derive_edges(doc: Document, d2i: Dict[str, int]):
 @ray.remote
 def derive_edges_runner(doc: Document, d2i: Dict[str, int]):
     return derive_edges(doc, d2i)
+
+
+def compute_pr(edge_index, damp: float = 0.85, k: int = 10):
+    num_nodes = edge_index.max().item() + 1
+    deg_out = degree(edge_index[0])
+    x = torch.ones((num_nodes, )).to(edge_index.device).to(torch.float32)
+
+    for i in range(k):
+        edge_msg = x[edge_index[0]] / deg_out[edge_index[0]]
+        agg_msg = scatter(edge_msg, edge_index[1], reduce='sum')
+
+        x = (1 - damp) * x + damp * agg_msg
+
+    return x
 
 
 def ray_reduce(func, xs):

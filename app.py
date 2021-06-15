@@ -16,4 +16,20 @@ engine = Engine(dataset=dataset, ranking_algo='tfidf')
 @app.get('/search/')
 def search(q: str):
     results = engine.search(q)
-    return [x.document.main_image for x in results]
+    res = [x.document.main_image for x in results]
+
+    def is_bullshit(x: str) -> bool:
+        if x.endswith('20px-Semi-protection-shackle.svg.png'):
+            return True
+        if x.endswith('50px-Question_book-new.svg.png'):
+            return True
+        if x.endswith('40px-Edit-clear.svg.png'):
+            return True
+        if x.endswith('50px-Question_book-new.svg.png'):
+            return True
+        if x.endswith('19px-Symbol_support_vote.svg.png'):
+            return True
+        return False
+
+    res = [x for x in res if not is_bullshit(x)]
+    return res
